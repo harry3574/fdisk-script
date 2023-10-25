@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Reset
+Comment=Launches your custom script
+Exec=gnome-terminal -- bash -c "/source/fdisk_auto.sh; exec bash"
+Terminal=true
+Type=Application
+Icon=utilities-terminal
