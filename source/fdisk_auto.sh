@@ -4,20 +4,15 @@
 partitions=()
 
 # Use fdisk to list partitions and parse the output
-while read -r line; do
-    # Skip empty lines
-    if [ -n "$line" ]; then
-        partitions+=("$line")
-    fi
-done < <(fdisk -l | grep -E 'Disk /dev/')
+mapfile -t partitions < <(fdisk -l | awk '/Disk \/dev\// {print $2}' | sed 's/://')
 
 # Determine the device name of the bootable partition
-self_partition="$(df -h / | grep -Eo '/dev/[a-zA-Z0-9]+' | head -1)"
+self_partition=$(df -h / | awk 'NR==2 {print $1}')
 
 self_index=-1
 
 for ((i=0; i<${#partitions[@]}; i++)); do
-    if [[ "${partitions[i]}" == *"${self_partition}:"* ]]; then
+    if [[ "${partitions[i]}" == "$self_partition" ]]; then
         self_index=$i
         break
     fi
@@ -39,15 +34,13 @@ read -p "Enter the number of the partition(s) to delete (space-separated or 'all
 
 if [ "$choices" == "all" ]; then
     for partition in "${partitions[@]}"; do
-        dev_name=$(echo "$partition" | cut -d' ' -f2 | sed 's/:$//')
-        fdisk "$dev_name" <<< "d"
+        fdisk "$partition" <<< "d"
     done
 else
     choices=($choices)
     for choice in "${choices[@]}"; do
         if [ "$choice" -ge 0 ] && [ "$choice" -lt "${#partitions[@]}" ]; then
-            dev_name=$(echo "${partitions[choice]}" | cut -d' ' -f2 | sed 's/:$//')
-            fdisk "$dev_name" <<< "d"
+            fdisk "${partitions[choice]}" <<< "d"
         else
             echo "Invalid choice: $choice"
         fi
